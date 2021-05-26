@@ -1,0 +1,7 @@
+---
+# vars file for apache
+
+ssl_cert_local_directory: /home/ansible/certs
+ssl_cert: cert.pem
+ssl_key: key.pem
+apacheversion: 2.4.17-2ubuntu3.5

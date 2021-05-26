@@ -1,0 +1,29 @@
+---
+# defaults file for mdadm
+mdadm_conf_path: /etc/mdadm/mdadm.conf
+update_initramfs: 'update-initramfs -u'
+
+mdadm_arrays:
+    # Define array name
+  - name: 'md0'
+    # Chunck size
+    chunk: '256'
+    # Define disk devices to assign to array
+    devices:
+      - '/dev/xvdb'
+      - '/dev/xvdc'
+      - '/dev/xvdd'
+      - '/dev/xvde'
+    # Define filesystem to partition array with
+    filesystem: 'ext4'
+    # Define the array raid level
+    # 0|1|4|5|6|10
+    level: '0'
+    # Define disk count for array 
+    partition_count: '4'
+
+# LVM
+vg_name: vgdata
+lv_name: lvdata
+
+mount_point: '/data'

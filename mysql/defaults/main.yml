@@ -1,0 +1,22 @@
+---
+# defaults file for mysql
+mysql_daemon: mysql
+mysql_packages:
+  - mysql-common
+  - mysql-server
+
+#Credentials
+mysql_root_pass: 123123
+mysql_root_username: root
+mysql_users_pass: 123123
+
+# Databases.
+mysql_databases:
+  - db1
+  - db2
+  - db3
+
+mysql_users:
+  - user1
+  - user2
+  - user3

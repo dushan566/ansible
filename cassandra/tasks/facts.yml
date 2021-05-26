@@ -1,0 +1,6 @@
+---
+
+- name: Set cassandra yaml configuration file path Debian-based distros
+  set_fact:
+    yaml_config_file: "/etc/cassandra/cassandra.yaml"
+    cassandra_environment_script: '/etc/cassandra/cassandra-env.sh'

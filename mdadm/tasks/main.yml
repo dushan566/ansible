@@ -1,0 +1,105 @@
+---
+# tasks file for mdadm
+- name: Check that the mdadm.conf exists
+  stat:
+    path: "{{ mdadm_conf_path }}"
+  register: path_stat
+
+- name: Install Required Packages
+  apt: "name={{ item }} state=installed force=yes"
+  with_items:
+   - mdadm
+   - lvm2
+  tags: setup
+
+# By default ubuntu mount /dev/xvdb on /mnt when adding instance store disk
+- name: release mounted partition on /mnt
+  command: "umount /mnt"
+  ignore_errors: yes
+ 
+- name: Creating RAID Array
+  shell: "yes | mdadm --create /dev/{{ item.name }} --chunk={{ item.chunk }} --level={{ item.level }} --raid-devices={{ item.devices|count }} {{ item.devices| join (' ') }}"
+  register: "array_created"
+  with_items: '{{ mdadm_arrays }}'
+  when: path_stat.stat.exists == false
+
+# Stopping raid arrays in preparation of Assemble disks with /dev/dm0
+- name: Stopping Array
+  command: "mdadm --stop /dev/{{ item.name }}"
+  register: "array_stopped"
+  with_items: '{{ mdadm_arrays }}'
+  changed_when: false
+
+- name: Assemble disks with Array
+  shell: "yes | mdadm --assemble /dev/{{ item.name }} {{ item.devices| join (' ') }}"
+  with_items: '{{ mdadm_arrays }}'
+  when: 
+   - array_stopped.results[0].rc == 0
+   - path_stat.stat.exists == false
+
+- name: Capturing Array Details
+  command: "mdadm --detail --scan"
+  register: "array_details"
+  changed_when: false
+
+# Updating /etc/mdadm/mdadm.conf in order to persist between reboots
+- name: arrays | Updating {{ mdadm_conf_path }}
+  lineinfile:
+    dest: "{{ mdadm_conf_path }}"
+    regexp: "^{{ item }}"
+    line: "{{ item }}"
+    state: "present"
+  with_items: '{{ array_details.stdout_lines }}'
+  when: array_created.changed
+
+# Updates initramfs archives in /boot
+- name: arrays Updating Initramfs
+  command: "{{ update_initramfs }}"
+
+- name: Create a volume group on top of RAID Array
+  lvg:
+    vg: "{{ vg_name }}"
+    pvs: "/dev/{{ item.name }}"
+  with_items: '{{ mdadm_arrays }}'
+
+- name: Create a LV with all remaining space in VG
+  lvol:
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    size: 100%FREE
+  register: lv_created
+
+- name: Create a ext4 filesystem on LV (format)
+  filesystem:
+    fstype: ext4
+    dev: "/dev/mapper/{{ vg_name }}-{{ lv_name }}"
+  when: lv_created.changed
+
+- name: Create mount point
+  file: path="{{ mount_point }}" state=directory
+
+- name: remove previous /dev/xvdb mount point in fstab if exist
+  replace:
+    path: /etc/fstab
+    regexp: '(\/dev\/xvdb)'
+    replace: '#/dev/xvdb'
+    backup: yes
+
+- name: Add new mount point to fstab
+  mount:
+    path: "{{ mount_point }}"
+    src: "/dev/mapper/{{ vg_name }}-{{ lv_name }}"
+    fstype: ext4
+    state: present
+
+- name: Mount all
+  command: "mount -a"
+  args:
+    warn: no
+
+- name: Show all mount points
+  command: "df -hT"
+  register: mountpoints
+
+- debug:
+    msg: "{{ mountpoints }}"

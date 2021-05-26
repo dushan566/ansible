@@ -1,0 +1,3 @@
+---
+# defaults file for cassandra
+cluster_name: mycluster

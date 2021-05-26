@@ -1,0 +1,7 @@
+---
+- name: use apache role 
+  hosts: localhost
+  become: true
+  
+  roles:
+    - role: haproxy

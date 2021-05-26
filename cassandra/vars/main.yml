@@ -1,0 +1,8 @@
+---
+# vars file for cassandra
+cass_version: 3.11.2
+base_dir: /var/lib/cassandra
+data_dir: "{{ base_dir }}/data"
+commitlog_dir: "{{ base_dir }}/commitlog"
+saved_caches_dir: "{{ base_dir }}/saved_cache"
+#cassandra_heap_newsize: 800M
